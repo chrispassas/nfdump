@@ -1,5 +1,5 @@
 /*
-nfdump this libraries purpose is to allow a Go program to natively proess NFDump files without the need for CLI tools.
+Package nfdump this libraries purpose is to allow a Go program to natively proess NFDump files without the need for CLI tools.
 */
 package nfdump
 
@@ -47,6 +47,7 @@ type NFFile struct {
 	SamplerInfo   map[uint16]NFSamplerInfoRecord
 }
 
+//NFSamplerInfoRecord store router sampling information
 type NFSamplerInfoRecord struct {
 	// sampler data
 	// id assigned by the exporting device
