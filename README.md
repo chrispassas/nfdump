@@ -1,6 +1,11 @@
 # nfdump
 NFDump File Reader
 
+This library allows Go programs to read file produced by nfdump.
+
+https://github.com/phaag/nfdump
+> nfdump is a toolset in order to collect and process netflow and sflow data, sent from netflow/sflow compatible devices. The toolset supports netflow v1, v5/v7,v9,IPFIX and SFLOW. nfdump supports IPv4 as well as IPv6.
+
 
 ## ParseReader Example
 ```go
