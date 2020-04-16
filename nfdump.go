@@ -60,6 +60,7 @@ type NFSamplerInfoRecord struct {
 	ExporterSysID uint16
 }
 
+//NFExporterInfoRecord exporter info record
 type NFExporterInfoRecord struct {
 	// exporter version
 	Version uint32
@@ -72,6 +73,7 @@ type NFExporterInfoRecord struct {
 	ID uint32
 }
 
+//NFExporterStatRecord exporter stats record
 type NFExporterStatRecord struct {
 	// internal assigned ID
 	SysID uint32
@@ -90,7 +92,7 @@ type NFRecordHeader struct {
 	Size uint16
 }
 
-//Size 32 bytes
+//NFRecord Size 32 bytes
 //Most appear to be size 96 bytes (remainder 64)
 type NFRecord struct {
 

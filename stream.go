@@ -10,6 +10,7 @@ import (
 	"github.com/rasky/go-lzo"
 )
 
+//NFStream keeps track of non record fields while stream processing file
 type NFStream struct {
 	Header     NFHeader
 	StatRecord NFStatRecord
@@ -29,6 +30,7 @@ type NFStream struct {
 	SamplerInfo       map[uint16]NFSamplerInfoRecord
 }
 
+//StreamReader read nfdump file record by record with minimal memory usage
 func StreamReader(r io.Reader) (nfs *NFStream, err error) {
 
 	nfs = &NFStream{
