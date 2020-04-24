@@ -65,6 +65,7 @@ func StreamReader(r io.Reader) (nfs *NFStream, err error) {
 	return
 }
 
+//Row each call will return an NFRecord struct or an error. io.EOF error means end of file.
 func (nfs *NFStream) Row() (record NFRecord, err error) {
 
 	var (

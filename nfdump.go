@@ -124,47 +124,47 @@ type NFRecord struct {
 	ICMPType      uint8
 	ICMPCode      uint8
 
-	//Required Extention 1
+	//Required Extension 1
 	SrcIP net.IP
 	DstIP net.IP
 
-	//Required Extention 2
+	//Required Extension 2
 	PacketCount uint64
 
-	//Required Extention 3
+	//Required Extension 3
 	ByteCount uint64
 
-	//Extention 4 & 5
+	//Extension 4 & 5
 	Input  uint32
 	Output uint32
 
-	//Extention 6 & 7
+	//Extension 6 & 7
 	SrcAS uint32
 	DstAS uint32
 
-	//Extention 8
+	//Extension 8
 	DstTos  uint8
 	Dir     uint8
 	SrcMask uint8
 	DstMask uint8
 
-	//Extention 9 & 10
+	//Extension 9 & 10
 	NextHopIP net.IP
 
-	//Extention 11 & 12
+	//Extension 11 & 12
 	BGPNextIP net.IP
 
-	//Extention 13
+	//Extension 13
 	SrcVlan uint16
 	DstVLan uint16
 
-	//Extention 14 & 15
+	//Extension 14 & 15
 	OutPkts uint64
 
-	//Extention 16 & 17
+	//Extension 16 & 17
 	OutBytes uint64
 
-	//Extention 18 & 19
+	//Extension 18 & 19
 	AggeFlows uint64
 
 	//Extension 22
@@ -176,7 +176,7 @@ type NFRecord struct {
 	//Received Received Time Milliseconds
 	Received uint64
 
-	//Extentions 20-44 to be implimented later/as needed
+	//Extensions 20-44 to be implemented later/as needed
 }
 
 //ReceivedTime return Go time.Time representation of flow Received Time
