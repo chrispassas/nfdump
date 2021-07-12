@@ -536,7 +536,7 @@ NextBlock:
 				record.ICMPType = uint8(decompressedBlock[start:][27])
 				record.ICMPCode = uint8(decompressedBlock[start:][26])
 				record.SrcPort = 0
-				record.DstPort = 0
+				record.DstPort = (uint16(record.ICMPType) * 256) + uint16(record.ICMPCode)
 			} else {
 				record.SrcPort = binary.LittleEndian.Uint16(decompressedBlock[start:][24:26])
 				record.DstPort = binary.LittleEndian.Uint16(decompressedBlock[start:][26:28])
