@@ -10,7 +10,7 @@ import (
 	"github.com/rasky/go-lzo"
 )
 
-//NFStream keeps track of non record fields while stream processing file
+// NFStream keeps track of non record fields while stream processing file
 type NFStream struct {
 	Header     NFHeader
 	StatRecord NFStatRecord
@@ -30,7 +30,7 @@ type NFStream struct {
 	SamplerInfo       map[uint16]NFSamplerInfoRecord
 }
 
-//StreamReader read nfdump file record by record with minimal memory usage
+// StreamReader read nfdump file record by record with minimal memory usage
 func StreamReader(r io.Reader) (nfs *NFStream, err error) {
 
 	nfs = &NFStream{
@@ -65,7 +65,7 @@ func StreamReader(r io.Reader) (nfs *NFStream, err error) {
 	return
 }
 
-//Row each call will return an NFRecord struct or an error. io.EOF error means end of file.
+// Row each call will return an NFRecord struct or an error. io.EOF error means end of file.
 func (nfs *NFStream) Row() (record NFRecord, err error) {
 
 	var (
@@ -101,7 +101,7 @@ NextBlock:
 			return
 		}
 
-		//Only block type 2 is currently supported, any other types of data will be skipped
+		// Only block type 2 is currently supported, any other types of data will be skipped
 		if nfs.blockHeader.ID != 2 {
 			nfs.readNewBlock = true
 			goto NextBlock
@@ -132,20 +132,20 @@ NextBlock:
 		nfs.start = 0
 	}
 
-	//START Record
+	// START Record
 NextRecord:
 	nfs.blockRecordCount++
 	nfs.recordHeader.Type = binary.LittleEndian.Uint16(nfs.decompressedBlock[nfs.start:][0:2])
 	nfs.recordHeader.Size = binary.LittleEndian.Uint16(nfs.decompressedBlock[nfs.start:][2:4])
 
-	//Keep count of how many of each record type
+	// Keep count of how many of each record type
 	// nff.Meta.RecordIDCount[recordHeader.Type]++
 	if nfs.recordHeader.Type == 2 {
 		var mapID = binary.LittleEndian.Uint16(nfs.decompressedBlock[nfs.start:][4:6])
 		var extSize = binary.LittleEndian.Uint16(nfs.decompressedBlock[nfs.start:][6:8])
 
-		//extSize == 0 extension map v2
-		//extSize > 0 extension map v1
+		// extSize == 0 extension map v2
+		// extSize > 0 extension map v1
 		if extSize == 0 {
 			err = fmt.Errorf("Unsupported extension map v2 file")
 			return
@@ -163,7 +163,7 @@ NextRecord:
 			This is how to determine the total extensions in the record to read out and put in ext map.
 		*/
 
-		//If mapID already empty it before adding new extMapID's
+		// If mapID already empty it before adding new extMapID's
 		if _, ok = nfs.extMap[mapID]; ok {
 			nfs.extMap[mapID] = nil
 		}
@@ -188,7 +188,7 @@ NextRecord:
 		nfs.start += int(nfs.recordHeader.Size)
 		goto NextRecord
 	} else if nfs.recordHeader.Type == 7 {
-		//Store Exporter in map 'exporters'
+		// Store Exporter in map 'exporters'
 		var exporter NFExporterInfoRecord
 		exporter.Version = binary.LittleEndian.Uint32(nfs.decompressedBlock[nfs.start:][4:8])
 		exporter.SAFamily = binary.LittleEndian.Uint16(nfs.decompressedBlock[nfs.start:][24:26])
@@ -201,10 +201,10 @@ NextRecord:
 		*/
 		var ipNumber2 = binary.LittleEndian.Uint64(nfs.decompressedBlock[nfs.start:][16:24])
 		if ipNumber2 == 0 {
-			//IPv4
+			// IPv4
 			exporter.IPAddr = nfs.decompressedBlock[nfs.start:][12:16]
 		} else {
-			//IPv6
+			// IPv6
 			var tmpIP []byte
 			tmpIP = append(tmpIP, nfs.decompressedBlock[nfs.start:][16:24]...)
 			tmpIP = append(tmpIP, nfs.decompressedBlock[nfs.start:][8:16]...)
@@ -216,7 +216,7 @@ NextRecord:
 		nfs.start += int(nfs.recordHeader.Size)
 		goto NextRecord
 	} else if nfs.recordHeader.Type == 9 {
-		//Store Samplers in map 'Samplers'
+		// Store Samplers in map 'Samplers'
 
 		var sampler NFSamplerInfoRecord
 		sampler.ID = binary.LittleEndian.Uint32(nfs.decompressedBlock[nfs.start:][4:8])
@@ -348,13 +348,13 @@ NextRecord:
 			readOffset += 4
 		case 8:
 			record.DstTos = nfs.decompressedBlock[nfs.start:][readOffset:][0]
-			readOffset += 1
+			readOffset++
 			record.Dir = nfs.decompressedBlock[nfs.start:][readOffset:][0]
-			readOffset += 1
+			readOffset++
 			record.SrcMask = nfs.decompressedBlock[nfs.start:][readOffset:][0]
-			readOffset += 1
+			readOffset++
 			record.DstMask = nfs.decompressedBlock[nfs.start:][readOffset:][0]
-			readOffset += 1
+			readOffset++
 		case 9:
 			record.NextHopIP = reverseByteSlice(nfs.decompressedBlock[nfs.start:][readOffset:][0:4])
 			readOffset += 4
@@ -391,13 +391,13 @@ NextRecord:
 			record.AggeFlows = binary.LittleEndian.Uint64(nfs.decompressedBlock[nfs.start:][readOffset:][0:8])
 			readOffset += 8
 		case 20:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 16
 		case 21:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 16
 		case 22:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 40
 		case 23:
 			record.RouterIP = reverseByteSlice(nfs.decompressedBlock[nfs.start:][readOffset:][0:4])
@@ -407,66 +407,66 @@ NextRecord:
 			record.RouterIP = append(record.RouterIP, reverseByteSlice(nfs.decompressedBlock[nfs.start:][readOffset:][8:16])...)
 			readOffset += 16
 		case 25:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 4
 		case 26:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 8
 		case 27:
 			record.Received = binary.LittleEndian.Uint64(nfs.decompressedBlock[nfs.start:][readOffset:][0:8])
 			readOffset += 8
 		case 28:
-			//reserved
+			// reserved
 		case 29:
-			//reserved
+			// reserved
 		case 30:
-			//reserved
+			// reserved
 		case 31:
-			//reserved
+			// reserved
 		case 32:
-			//reserved
+			// reserved
 		case 33:
-			//reserved
+			// reserved
 		case 34:
-			//reserved
+			// reserved
 		case 35:
-			//reserved
+			// reserved
 		case 36:
-			//reserved
+			// reserved
 		case 37:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 20
 		case 38:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 4
 		case 39:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 8
 		case 40:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 32
 		case 41:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 24
 		case 42:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 24
 		case 43:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 72
 		case 44:
-			//reserved
+			// reserved
 		case 45:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 24
 		case 46:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 12
 		case 47:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 8
 		case 48:
-			//To be added later or as needed
+			// To be added later or as needed
 			readOffset += 8
 		}
 	}
