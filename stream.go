@@ -270,9 +270,9 @@ NextRecord:
 	record.Proto = uint8(nfs.decompressedBlock[nfs.start:][22])
 	record.Tos = uint8(nfs.decompressedBlock[nfs.start:][23])
 
-	if record.Proto == 1 {
-		record.ICMPType = uint8(nfs.decompressedBlock[nfs.start:][27])
-		record.ICMPCode = uint8(nfs.decompressedBlock[nfs.start:][26])
+	if record.Proto == 1 || record.Proto == 58 {
+		record.ICMPType = nfs.decompressedBlock[nfs.start:][27]
+		record.ICMPCode = nfs.decompressedBlock[nfs.start:][26]
 		record.SrcPort = 0
 		record.DstPort = (uint16(record.ICMPType) * 256) + uint16(record.ICMPCode)
 	} else {
@@ -287,8 +287,11 @@ NextRecord:
 
 	if (record.Flags & v6And) != 0 {
 		// nff.Meta.IPv6Count++
-		record.SrcIP = reverseByteSlice(nfs.decompressedBlock[nfs.start:][32:48])
-		record.DstIP = reverseByteSlice(nfs.decompressedBlock[nfs.start:][48:64])
+		record.SrcIP = append(record.SrcIP, reverseByteSlice(nfs.decompressedBlock[nfs.start:][32:40])...)
+		record.SrcIP = append(record.SrcIP, reverseByteSlice(nfs.decompressedBlock[nfs.start:][40:48])...)
+
+		record.DstIP = append(record.DstIP, reverseByteSlice(nfs.decompressedBlock[nfs.start:][48:56])...)
+		record.DstIP = append(record.DstIP, reverseByteSlice(nfs.decompressedBlock[nfs.start:][56:64])...)
 		ipSize = 32
 
 	} else {
@@ -400,13 +403,8 @@ NextRecord:
 			record.RouterIP = reverseByteSlice(nfs.decompressedBlock[nfs.start:][readOffset:][0:4])
 			readOffset += 4
 		case 24:
-			/*
-				We need an IPv6 example to ensure we are parsing the IP correctly.
-			*/
-			// var tmpIP []byte
-			// tmpIP = append(tmpIP, decompressedBlock[nfs.start:][8:16]...)
-			// tmpIP = append(tmpIP, decompressedBlock[nfs.start:][0:8]...)
-			// record.RouterIP = tmpIP
+			record.RouterIP = append(record.RouterIP, reverseByteSlice(nfs.decompressedBlock[nfs.start:][readOffset:][0:8])...)
+			record.RouterIP = append(record.RouterIP, reverseByteSlice(nfs.decompressedBlock[nfs.start:][readOffset:][8:16])...)
 			readOffset += 16
 		case 25:
 			//To be added later or as needed
