@@ -15,45 +15,59 @@ var testData = []NFRecord{
 
 var testFileRecordLength = 100000
 
-var testFiles = []string{
-	"testdata/nfcapd-large-none",
-	"testdata/nfcapd-large-lzo",
-	// "testdata/nfcapd-large-lz4", //Not currently supported
-	// "testdata/nfcapd-large-bz2", //Not currently supported
+var testFiles = []struct {
+	fileName        string
+	expectedRecords int
+}{
+	{
+		fileName:        "testdata/nfcapd-large-none",
+		expectedRecords: 100000,
+	},
+	{
+		fileName:        "testdata/nfcapd-large-lzo",
+		expectedRecords: 100000,
+	},
+	{
+		fileName:        "testdata/nfcapd-empty",
+		expectedRecords: 0,
+	},
 }
 
 func TestReader(t *testing.T) {
+	for _, tc := range testFiles {
+		tc := tc
+		t.Run(tc.fileName, func(t *testing.T) {
+			var data []byte
+			var err error
+			if data, err = ioutil.ReadFile(tc.fileName); err != nil {
+				t.Error(err)
+			}
 
-	var data []byte
-	var err error
-	if data, err = ioutil.ReadFile("testdata/nfcapd-large-lzo"); err != nil {
-		t.Error(err)
+			var reader = bytes.NewReader(data)
+			var nff *NFFile
+
+			if nff, err = ParseReader(reader); err != nil {
+				t.Error(err)
+			}
+
+			for x, record := range nff.Records {
+				// Only test first 2 records
+				if x > 1 {
+					break
+				}
+				if fmt.Sprintf("%#v", record) != fmt.Sprintf("%#v", testData[x]) {
+					t.Errorf("test record:%d does not match", x)
+				}
+			}
+
+			if len(nff.Records) != tc.expectedRecords {
+				t.Errorf("Unexpected record count:%d in test file, expected %d", len(nff.Records), tc.expectedRecords)
+			}
+		})
 	}
-
-	var reader = bytes.NewReader(data)
-	var nff *NFFile
-
-	if nff, err = ParseReader(reader); err != nil {
-		t.Error(err)
-	}
-
-	for x, record := range nff.Records {
-		//Only test first 2 records
-		if x > 1 {
-			break
-		}
-		if fmt.Sprintf("%#v", record) != fmt.Sprintf("%#v", testData[x]) {
-			t.Errorf("test record:%d does not match", x)
-		}
-	}
-
-	if len(nff.Records) != 100000 {
-		t.Errorf("Unexpected record count:%d in test file, expected 10", len(nff.Records))
-	}
-
 }
 
-//BenchmarkReadFile read all test files to allow benchmarking how fast files can be read.
+// BenchmarkReadFile read all test files to allow benchmarking how fast files can be read.
 func BenchmarkReadFile(b *testing.B) {
 
 	for n := 0; n < b.N; n++ {
@@ -61,7 +75,7 @@ func BenchmarkReadFile(b *testing.B) {
 		var data []byte
 		var nff *NFFile
 
-		if data, err = ioutil.ReadFile(testFiles[0]); err != nil {
+		if data, err = ioutil.ReadFile(testFiles[0].fileName); err != nil {
 			b.Error(err)
 		}
 

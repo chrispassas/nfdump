@@ -29,6 +29,12 @@ const (
 
 	// Only 1 layout version is known/supported
 	layoutVersion = 1
+
+	ExtensionMapRecordHeadType = 2
+	ExporterInfoRecordHeadType = 7
+	ExporterStatRecordHeadType = 8
+	SamplerInfoRecordHeadType  = 9
+	EmptyRecordHeadType        = 0
 )
 
 var (
@@ -397,12 +403,18 @@ NextBlock:
 
 			// Keep count on records in block
 			blockRecordCount++
-			recordHeader.Type = binary.LittleEndian.Uint16(decompressedBlock[start:][0:2])
-			recordHeader.Size = binary.LittleEndian.Uint16(decompressedBlock[start:][2:4])
+			if len(decompressedBlock[start:]) > 0 {
+				recordHeader.Type = binary.LittleEndian.Uint16(decompressedBlock[start:][0:2])
+				recordHeader.Size = binary.LittleEndian.Uint16(decompressedBlock[start:][2:4])
+			} else {
+				recordHeader.Type = 0
+				recordHeader.Size = 0
+			}
 
 			// Keep count of how many of each record type
 			nff.Meta.RecordIDCount[recordHeader.Type]++
-			if recordHeader.Type == 2 {
+			switch recordHeader.Type {
+			case ExtensionMapRecordHeadType:
 				var mapID = binary.LittleEndian.Uint16(decompressedBlock[start:][4:6])
 				var extSize = binary.LittleEndian.Uint16(decompressedBlock[start:][6:8])
 
@@ -451,7 +463,7 @@ NextBlock:
 				start += int(recordHeader.Size)
 
 				continue NextRecord
-			} else if recordHeader.Type == 7 {
+			case ExporterInfoRecordHeadType:
 				// Store Exporter in map 'exporters'
 				var exporter NFExporterInfoRecord
 				exporter.Version = binary.LittleEndian.Uint32(decompressedBlock[start:][4:8])
@@ -479,7 +491,7 @@ NextBlock:
 
 				start += int(recordHeader.Size)
 				continue NextRecord
-			} else if recordHeader.Type == 9 {
+			case SamplerInfoRecordHeadType:
 				// Store Samplers in map 'Samplers'
 
 				var sampler NFSamplerInfoRecord
@@ -492,9 +504,9 @@ NextBlock:
 
 				start += int(recordHeader.Size)
 				continue NextRecord
-			} else if recordHeader.Type == 0 {
+			case EmptyRecordHeadType:
 				continue NextBlock
-			} else if recordHeader.Type == 8 {
+			case ExporterStatRecordHeadType:
 				// Exporter statistics records
 
 				var statCount uint32
@@ -515,9 +527,11 @@ NextBlock:
 				}
 
 				continue NextBlock
-			} else if recordHeader.Type != 10 {
-				start += int(recordHeader.Size)
-				continue NextRecord
+			default:
+				if recordHeader.Type != 10 {
+					start += int(recordHeader.Size)
+					continue NextRecord
+				}
 			}
 
 			var record NFRecord

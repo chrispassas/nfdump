@@ -140,7 +140,8 @@ NextRecord:
 
 	// Keep count of how many of each record type
 	// nff.Meta.RecordIDCount[recordHeader.Type]++
-	if nfs.recordHeader.Type == 2 {
+	switch nfs.recordHeader.Type {
+	case ExtensionMapRecordHeadType:
 		var mapID = binary.LittleEndian.Uint16(nfs.decompressedBlock[nfs.start:][4:6])
 		var extSize = binary.LittleEndian.Uint16(nfs.decompressedBlock[nfs.start:][6:8])
 
@@ -187,7 +188,7 @@ NextRecord:
 
 		nfs.start += int(nfs.recordHeader.Size)
 		goto NextRecord
-	} else if nfs.recordHeader.Type == 7 {
+	case ExporterInfoRecordHeadType:
 		// Store Exporter in map 'exporters'
 		var exporter NFExporterInfoRecord
 		exporter.Version = binary.LittleEndian.Uint32(nfs.decompressedBlock[nfs.start:][4:8])
@@ -215,7 +216,7 @@ NextRecord:
 
 		nfs.start += int(nfs.recordHeader.Size)
 		goto NextRecord
-	} else if nfs.recordHeader.Type == 9 {
+	case SamplerInfoRecordHeadType:
 		// Store Samplers in map 'Samplers'
 
 		var sampler NFSamplerInfoRecord
@@ -228,10 +229,10 @@ NextRecord:
 
 		nfs.start += int(nfs.recordHeader.Size)
 		goto NextRecord
-	} else if nfs.recordHeader.Type == 0 {
+	case EmptyRecordHeadType:
 		nfs.readNewBlock = true
 		goto NextBlock
-	} else if nfs.recordHeader.Type == 8 {
+	case ExporterStatRecordHeadType:
 		// Exporter statistics records
 
 		var statCount uint32
@@ -253,10 +254,11 @@ NextRecord:
 
 		nfs.readNewBlock = true
 		goto NextBlock
-	} else if nfs.recordHeader.Type != 10 {
-		nfs.start += int(nfs.recordHeader.Size)
-
-		goto NextRecord
+	default:
+		if nfs.recordHeader.Type != 10 {
+			nfs.start += int(nfs.recordHeader.Size)
+			goto NextRecord
+		}
 	}
 
 	record.Flags = binary.LittleEndian.Uint16(nfs.decompressedBlock[nfs.start:][4:6])
