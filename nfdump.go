@@ -12,7 +12,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/rasky/go-lzo"
 )
 
@@ -39,7 +38,11 @@ const (
 
 var (
 	// ErrBadMagic file magic does not match expected value
-	ErrBadMagic = fmt.Errorf("bad file magic")
+	ErrBadMagic               = fmt.Errorf("bad file magic")
+	ErrUnsupportedFileVersion = fmt.Errorf("Unsupported File Version")
+	ErrFailedReadStatRecord   = fmt.Errorf("Failed read StatRecord")
+	ErrFailedReadBlockHeader  = fmt.Errorf("Failed read BlockHeader")
+	ErrFailedReadFileHeader   = fmt.Errorf("Failed read NFFile Header")
 )
 
 // NFFile NFDump Go structure representation
@@ -333,7 +336,7 @@ func ParseReader(r io.Reader) (nff *NFFile, err error) {
 	}
 
 	if err = binary.Read(r, binary.LittleEndian, &nff.Header); err != nil {
-		err = errors.Wrapf(err, "Failed read NFFile Header")
+		err = fmt.Errorf("Failed read NFFile Header error:%w", err)
 		return
 	}
 
@@ -343,12 +346,13 @@ func ParseReader(r io.Reader) (nff *NFFile, err error) {
 	}
 
 	if nff.Header.Version != layoutVersion {
-		err = errors.Wrap(err, "Unsupported File Version")
-		return
+
+		err = ErrUnsupportedFileVersion
+		return nff, err
 	}
 
 	if err = binary.Read(r, binary.LittleEndian, &nff.StatRecord); err != nil {
-		err = errors.Wrapf(err, "Failed read StatRecord")
+		err = ErrFailedReadStatRecord
 		return
 	}
 
@@ -357,7 +361,7 @@ func ParseReader(r io.Reader) (nff *NFFile, err error) {
 NextBlock:
 	for blockIndex = 1; blockIndex <= nff.Header.NumBlocks; blockIndex++ {
 		if err = binary.Read(r, binary.LittleEndian, &blockHeader); err != nil {
-			err = errors.Wrapf(err, "Failed read BlockHeader")
+			err = ErrFailedReadBlockHeader
 			return
 		}
 
@@ -365,7 +369,7 @@ NextBlock:
 		blockData = make([]byte, blockHeader.Size)
 
 		if err = binary.Read(r, binary.LittleEndian, &blockData); err != nil {
-			err = errors.Wrapf(err, "Read Block Failed blockIndex:%d", blockIndex)
+			err = fmt.Errorf("Read Block Failed blockIndex:%d error:%w", blockIndex, err)
 			return
 		}
 
@@ -378,7 +382,7 @@ NextBlock:
 			decompressedBlock = blockData
 		} else if (nff.Header.Flags & lzoCompressed) > 0 {
 			if decompressedBlock, err = lzo.Decompress1X(bytes.NewReader(blockData), 0, 0); err != nil {
-				err = errors.Wrapf(err, "lzo.Decompress1X() failed")
+				err = fmt.Errorf("lzo.Decompress1X() failed error:%w", err)
 				return
 			}
 		} else if (nff.Header.Flags & lz4Compressed) > 0 {

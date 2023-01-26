@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/rasky/go-lzo"
 )
 
@@ -43,26 +42,26 @@ func StreamReader(r io.Reader) (nfs *NFStream, err error) {
 	}
 
 	if err = binary.Read(nfs.r, binary.LittleEndian, &nfs.Header); err != nil {
-		err = errors.Wrapf(err, "Failed read NFFile Header")
-		return
+		err = ErrFailedReadFileHeader
+		return nfs, err
 	}
 
 	if nfs.Header.Magic != magic {
 		err = ErrBadMagic
-		return
+		return nfs, err
 	}
 
 	if nfs.Header.Version != layoutVersion {
-		err = errors.Wrap(err, "Unsupported File Version")
-		return
+		err = ErrUnsupportedFileVersion
+		return nfs, err
 	}
 
 	if err = binary.Read(nfs.r, binary.LittleEndian, &nfs.StatRecord); err != nil {
-		err = errors.Wrapf(err, "Failed read StatRecord")
-		return
+		err = ErrFailedReadStatRecord
+		return nfs, err
 	}
 
-	return
+	return nfs, err
 }
 
 // Row each call will return an NFRecord struct or an error. io.EOF error means end of file.
@@ -84,8 +83,8 @@ NextBlock:
 		if err = binary.Read(nfs.r, binary.LittleEndian, &nfs.blockHeader); err == io.EOF {
 			return
 		} else if err != nil {
-			err = errors.Wrapf(err, "Failed read BlockHeader")
-			return
+			err = ErrFailedReadBlockHeader
+			return record, err
 		}
 
 		nfs.blockIndex++
@@ -95,10 +94,10 @@ NextBlock:
 		}
 
 		if err = binary.Read(nfs.r, binary.LittleEndian, nfs.blockData[:nfs.blockHeader.Size]); err == io.EOF {
-			return
+			return record, err
 		} else if err != nil {
-			err = errors.Wrapf(err, "Read Block Failed blockIndex:%d ", nfs.blockIndex)
-			return
+			err = fmt.Errorf("Read Block Failed blockIndex:%d error:%w", nfs.blockIndex, err)
+			return record, err
 		}
 
 		// Only block type 2 is currently supported, any other types of data will be skipped
@@ -111,22 +110,22 @@ NextBlock:
 			nfs.decompressedBlock = nfs.blockData[:nfs.blockHeader.Size]
 		} else if (nfs.Header.Flags & lzoCompressed) > 0 {
 			if nfs.decompressedBlock, err = lzo.Decompress1X(bytes.NewReader(nfs.blockData[:nfs.blockHeader.Size]), 0, 0); err != nil {
-				err = errors.Wrapf(err, "lzo.Decompress1X() failed")
-				return
+				err = fmt.Errorf("lzo.Decompress1X() failed error:%w", err)
+				return record, err
 			}
 		} else if (nfs.Header.Flags & lz4Compressed) > 0 {
 			err = fmt.Errorf("LZ4 compression not supported")
-			return
+			return record, err
 			// if _, err = lz4.Decode(nfs.decompressedBlock, blockData); err != nil {
 			// 	err = errors.Wrapf(err, "lz4.Decode() failed")
-			// 	return
+			// 	return record, err
 			// }
 		} else if (nfs.Header.Flags & bz2Compressed) > 0 {
 			err = fmt.Errorf("BZ2 compression not supported")
-			return
+			return record, err
 		} else {
 			err = fmt.Errorf("Unsupported File Flag Compression:%d", nfs.Header.Flags)
-			return
+			return record, err
 		}
 		nfs.blockRecordCount = 0
 		nfs.start = 0
@@ -149,7 +148,7 @@ NextRecord:
 		// extSize > 0 extension map v1
 		if extSize == 0 {
 			err = fmt.Errorf("Unsupported extension map v2 file")
-			return
+			return record, err
 		}
 		var x uint16
 		var extStart uint16 = 6
@@ -175,7 +174,7 @@ NextRecord:
 			newExtMapID = binary.LittleEndian.Uint16(nfs.decompressedBlock[nfs.start:][extStart:extEnd])
 			if newExtMapID > 48 {
 				err = fmt.Errorf("Corrupt file, bad extMapID:%d mapID:%d", newExtMapID, mapID)
-				return
+				return record, err
 			}
 			/*
 				v1 extension map aligns to 32bit so its possible there could be a 0 mapID at the end
@@ -323,7 +322,7 @@ NextRecord:
 
 	if exts, ok = nfs.extMap[recordExtID]; !ok {
 		err = fmt.Errorf("Extension not in map, ext:%d", recordExtID)
-		return
+		return record, err
 	}
 
 	for _, extID := range exts {
@@ -479,5 +478,5 @@ NextRecord:
 		nfs.readNewBlock = true
 	}
 
-	return
+	return record, err
 }
