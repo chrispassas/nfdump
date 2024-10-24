@@ -137,6 +137,11 @@ NextRecord:
 	nfs.recordHeader.Type = binary.LittleEndian.Uint16(nfs.decompressedBlock[nfs.start:][0:2])
 	nfs.recordHeader.Size = binary.LittleEndian.Uint16(nfs.decompressedBlock[nfs.start:][2:4])
 
+	if nfs.recordHeader.Size == 0 {
+		err = fmt.Errorf("Corrupt file, bad record size:%d", nfs.recordHeader.Size)
+		return record, err
+	}
+
 	// Keep count of how many of each record type
 	// nff.Meta.RecordIDCount[recordHeader.Type]++
 	switch nfs.recordHeader.Type {
