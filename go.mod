@@ -1,4 +1,4 @@
-module github.com/chrispassas/nfdump
+module github.com/wolfgan/nfdump
 
 go 1.14
 
