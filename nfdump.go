@@ -410,6 +410,11 @@ NextBlock:
 			if len(decompressedBlock[start:]) > 0 {
 				recordHeader.Type = binary.LittleEndian.Uint16(decompressedBlock[start:][0:2])
 				recordHeader.Size = binary.LittleEndian.Uint16(decompressedBlock[start:][2:4])
+
+				if recordHeader.Size == 0 {
+					err = fmt.Errorf("Corrupt file, bad record size:%d", recordHeader.Size)
+					return
+				}
 			} else {
 				recordHeader.Type = 0
 				recordHeader.Size = 0
